@@ -337,5 +337,40 @@ namespace HospitalManagementSystem.Controllers
                 return BadRequest(new { message = "An error occurred.", error = ex.Message });
             }
         }
+
+        [HttpGet("PatientLogsByNurse")]
+        public IActionResult GetPatientLogsByNurse(string nurseName)
+        {
+            try
+            {
+                var nurseLogs = dbContext.patients.Include(p => p.Doctor).AsNoTracking().Where(p => p.Nurse != null && p.Nurse.UserName == nurseName && p.IsActive).OrderByDescending(p => p.DateTime).ToList();
+                if (!nurseLogs.Any())
+                {
+                    return NotFound(new { message = "No patient logs found for this nurse." });
+                }
+                return Ok(new
+                {
+                    message = "Patient logs retrieved successfully!",
+                    nurseName = nurseName,
+                    logs = nurseLogs.Select(p => new
+                    {
+                        patientID = p.PatientID,
+                        patientName = p.PatientName,
+                        patientAge = p.PatientAge,
+                        patientGender = p.PatientGender,
+                        patientPhoneNumber = p.PatientPhoneNumber,
+                        patientAddress = p.PatientAddress,
+                        typeOfCheckUp = p.TypeofCheckUp,
+                        dateTime = p.DateTime,
+                        status = p.Status,
+                        assignedDoctor = p.Doctor != null ? p.Doctor.UserName : "Not Assigned"
+                    }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }
     }
 }
