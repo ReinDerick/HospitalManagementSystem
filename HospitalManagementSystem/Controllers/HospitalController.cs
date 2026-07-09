@@ -337,5 +337,49 @@ namespace HospitalManagementSystem.Controllers
                 return BadRequest(new { message = "An error occurred.", error = ex.Message });
             }
         }
+
+
+        [HttpDelete("PatientLog")] // Keeps your standard resource name
+        public IActionResult DeletePatientLog([FromQuery] Guid patientID)
+        {
+            try
+            {
+                var patient = dbContext.patients.FirstOrDefault(p => p.PatientID == patientID && p.IsActive == true);
+
+                if (patient == null)
+                {
+                    return NotFound(new { message = "Patient log not found!" });
+                }
+
+                string assignedDoctor = patient.SelectDoctor;
+
+                // Perform Soft Delete
+                patient.IsActive = false;
+                dbContext.SaveChanges();
+
+                // Get remaining active logs for this doctor
+                var remainingLogs = dbContext.patients.Where(p => p.SelectDoctor == assignedDoctor && p.IsActive == true).OrderByDescending(p => p.DateTime).ToList();
+
+                return Ok(new
+                {
+                    message = "Patient log deleted successfully.",
+                    logs = remainingLogs.Select(p => new
+                    {
+                        patientID = p.PatientID,
+                        patientName = p.PatientName,
+                        patientAge = p.PatientAge,
+                        patientGender = p.PatientGender,
+                        patientPhoneNumber = p.PatientPhoneNumber,
+                        patientAddress = p.PatientAddress,
+                        typeOfCheckUp = p.TypeofCheckUp,
+                        dateTime = p.DateTime
+                    }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "An error occurred.", error = ex.Message });
+            }
+        }
     }
 }
