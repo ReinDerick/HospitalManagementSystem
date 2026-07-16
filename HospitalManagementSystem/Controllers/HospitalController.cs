@@ -1,5 +1,4 @@
-﻿using HospitalManagementSystem.Api.Users.Infrastructure;
-using HospitalManagementSystem.Data;
+﻿using HospitalManagementSystem.Data;
 using HospitalManagementSystem.Models.DTO;
 using HospitalManagementSystem.Models.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,12 +16,10 @@ namespace HospitalManagementSystem.Controllers
     public class HospitalController : ControllerBase
     {
         private readonly HospitalDbContext dbContext;
-        private readonly TokenProvider tokenProvider;
 
-        public HospitalController(HospitalDbContext dbContext, TokenProvider tokenProvider)
+        public HospitalController(HospitalDbContext dbContext)
         {
             this.dbContext = dbContext;
-            this.tokenProvider = tokenProvider;
         }
 
         [HttpGet("PatientStatus/{UserID}")]
@@ -142,12 +139,9 @@ namespace HospitalManagementSystem.Controllers
                         return BadRequest(new { message = "Invalid user role!" });
                 }
 
-                string token = tokenProvider.Create(user);
-
                 return Ok(new
                 {
                     message = "Login successful!",
-                    token = token,
                 });
             }
             catch (Exception ex)
