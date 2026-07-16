@@ -1,6 +1,4 @@
-using HospitalManagementSystem.Api.Users.Infrastructure;
 using HospitalManagementSystem.Data;
-using HospitalManagementSystem.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
