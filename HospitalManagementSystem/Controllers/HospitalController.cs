@@ -141,6 +141,11 @@ namespace HospitalManagementSystem.Controllers
                 return Ok(new
                 {
                     message = "Login successful!",
+                    userID = user.UserID,
+                    userName = user.UserName,
+                    roleID = userRole.RoleID,
+                    roleName = roleName,
+                    redirectUrl = redirectUrl
                 });
             }
             catch (Exception ex)
