@@ -93,7 +93,6 @@ namespace HospitalManagementSystem.Controllers
         }
 
         [HttpPost("UserLogin")]
-        [AllowAnonymous]
         public IActionResult UserLogin(UserLogInDto userLogIn)
         {
             try

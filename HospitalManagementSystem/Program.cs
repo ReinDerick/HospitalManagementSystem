@@ -1,4 +1,4 @@
-using HospitalManagementSystem.Data;
+﻿using HospitalManagementSystem.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,16 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
 
+// Swagger Setup
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Database Connection
 builder.Services.AddDbContext<HospitalDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
-builder.Services.AddAuthorization();
-builder.Services.AddAuthentication();
-
+// CORS Policy (allows your frontend to talk to this backend)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
@@ -34,22 +34,20 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// 1. Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// 2. Main structural configurations
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 
-// 3. THE CRITICAL JWT GUARD SEQUENCE
-app.UseAuthentication(); // First: Reads the token and identifies who the user is
-app.UseAuthorization();  // Second: Checks if that identified user has access privileges
+// ❌ REMOVED: app.UseAuthentication()
+// ❌ REMOVED: app.UseAuthorization()
 
-// 4. THE EXIT POINT (MILAN'S GLOBAL LOCK APPLIED HERE)
-app.MapControllers().RequireAuthorization(); // <-- CHANGED: Chained .RequireAuthorization() here!
+// 🔓 UNLOCKED: Normal controller mapping without .RequireAuthorization()
+app.MapControllers();
 
 app.Run();
