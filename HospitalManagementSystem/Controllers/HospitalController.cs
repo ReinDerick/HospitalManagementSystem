@@ -1,5 +1,4 @@
-﻿using HospitalManagementSystem.Api.Users.Infrastructure;
-using HospitalManagementSystem.Data;
+﻿using HospitalManagementSystem.Data;
 using HospitalManagementSystem.Models.DTO;
 using HospitalManagementSystem.Models.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,12 +16,10 @@ namespace HospitalManagementSystem.Controllers
     public class HospitalController : ControllerBase
     {
         private readonly HospitalDbContext dbContext;
-        private readonly TokenProvider tokenProvider;
 
-        public HospitalController(HospitalDbContext dbContext, TokenProvider tokenProvider)
+        public HospitalController(HospitalDbContext dbContext)
         {
             this.dbContext = dbContext;
-            this.tokenProvider = tokenProvider;
         }
 
         [HttpGet("PatientStatus/{UserID}")]
@@ -142,12 +139,9 @@ namespace HospitalManagementSystem.Controllers
                         return BadRequest(new { message = "Invalid user role!" });
                 }
 
-                string token = tokenProvider.Create(user);
-
                 return Ok(new
                 {
                     message = "Login successful!",
-                    token = token,
                 });
             }
             catch (Exception ex)
@@ -331,50 +325,6 @@ namespace HospitalManagementSystem.Controllers
                 dbContext.SaveChanges();
                 return Ok( new { message = "Patient Status Updated Successfully! "});
             
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "An error occurred.", error = ex.Message });
-            }
-        }
-
-
-        [HttpDelete("PatientLog")] // Keeps your standard resource name
-        public IActionResult DeletePatientLog([FromQuery] Guid patientID)
-        {
-            try
-            {
-                var patient = dbContext.patients.FirstOrDefault(p => p.PatientID == patientID && p.IsActive == true);
-
-                if (patient == null)
-                {
-                    return NotFound(new { message = "Patient log not found!" });
-                }
-
-                string assignedDoctor = patient.SelectDoctor;
-
-                // Perform Soft Delete
-                patient.IsActive = false;
-                dbContext.SaveChanges();
-
-                // Get remaining active logs for this doctor
-                var remainingLogs = dbContext.patients.Where(p => p.SelectDoctor == assignedDoctor && p.IsActive == true).OrderByDescending(p => p.DateTime).ToList();
-
-                return Ok(new
-                {
-                    message = "Patient log deleted successfully.",
-                    logs = remainingLogs.Select(p => new
-                    {
-                        patientID = p.PatientID,
-                        patientName = p.PatientName,
-                        patientAge = p.PatientAge,
-                        patientGender = p.PatientGender,
-                        patientPhoneNumber = p.PatientPhoneNumber,
-                        patientAddress = p.PatientAddress,
-                        typeOfCheckUp = p.TypeofCheckUp,
-                        dateTime = p.DateTime
-                    }).ToList()
-                });
             }
             catch (Exception ex)
             {
