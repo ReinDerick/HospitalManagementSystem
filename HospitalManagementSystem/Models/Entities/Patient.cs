@@ -22,8 +22,6 @@ namespace HospitalManagementSystem.Models.Entities
 
         public DateTime DateTime { get; set; }
 
-        public required string SelectDoctor { get; set; }
-
         public bool IsActive { get; set; }
 
         public required string Status { get; set; }
