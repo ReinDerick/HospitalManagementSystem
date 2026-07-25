@@ -1,5 +1,4 @@
-﻿using HospitalManagementSystem.Api.Users.Infrastructure;
-using HospitalManagementSystem.Data;
+﻿using HospitalManagementSystem.Data;
 using HospitalManagementSystem.Models.DTO;
 using HospitalManagementSystem.Models.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,12 +16,10 @@ namespace HospitalManagementSystem.Controllers
     public class HospitalController : ControllerBase
     {
         private readonly HospitalDbContext dbContext;
-        private readonly TokenProvider tokenProvider;
 
-        public HospitalController(HospitalDbContext dbContext, TokenProvider tokenProvider)
+        public HospitalController(HospitalDbContext dbContext)
         {
             this.dbContext = dbContext;
-            this.tokenProvider = tokenProvider;
         }
 
         [HttpGet("PatientStatus/{UserID}")]
@@ -96,7 +93,6 @@ namespace HospitalManagementSystem.Controllers
         }
 
         [HttpPost("UserLogin")]
-        [AllowAnonymous]
         public IActionResult UserLogin(UserLogInDto userLogIn)
         {
             try
@@ -142,12 +138,14 @@ namespace HospitalManagementSystem.Controllers
                         return BadRequest(new { message = "Invalid user role!" });
                 }
 
-                string token = tokenProvider.Create(user);
-
                 return Ok(new
                 {
                     message = "Login successful!",
-                    token = token,
+                    userID = user.UserID,
+                    userName = user.UserName,
+                    roleID = userRole.RoleID,
+                    roleName = roleName,
+                    redirectUrl = redirectUrl
                 });
             }
             catch (Exception ex)
@@ -182,6 +180,13 @@ namespace HospitalManagementSystem.Controllers
                     parsedNurseId = tempNurseGuid;
                 }
 
+                var isOccupied = dbContext.patients.Any(p => p.DoctorID == parsedDoctorId && p.IsActive == true && p.DateTime == patientDto.DateTime);
+
+                if (isOccupied)
+                {
+                    return BadRequest(new { message = "Date and time is Occupied! " });
+                }
+
                 var PatientInfo = new Patient
                 {
                     PatientID = Guid.NewGuid(),
@@ -192,7 +197,6 @@ namespace HospitalManagementSystem.Controllers
                     PatientAddress = patientDto.PatientAddress,
                     TypeofCheckUp = patientDto.TypeofCheckUp,
                     DateTime = patientDto.DateTime,
-                    SelectDoctor = patientDto.SelectDoctor,
                     Status = "Pending",
                     IsActive = true,
 
@@ -220,12 +224,18 @@ namespace HospitalManagementSystem.Controllers
         }
 
         [HttpGet("PatientLogs")]
-        public IActionResult GetPatientLogsByDoctor(string doctorName)
+        public IActionResult GetPatientLogsByDoctor(string doctorID)
         {
             try
             {
+
+                if (!Guid.TryParse(doctorID, out Guid parsedDoctorId))
+                {
+                    return BadRequest(new { message = "Invalid Doctor ID format." });
+                }
+
                 // (IPAEXPLAIN OR ISEARCH DIN PANO ANG GINAGAWA NG CODE NATO, SPECIFICALLY YUNG .Include) include is parang join
-                var doctorLogs = dbContext.patients.Include(p => p.Nurse).AsNoTracking().Where(p => p.SelectDoctor == doctorName && p.IsActive).OrderByDescending(p => p.DateTime).ToList();
+                var doctorLogs = dbContext.patients.Include(p => p.Nurse).AsNoTracking().Where(p => p.DoctorID == parsedDoctorId && p.IsActive).OrderByDescending(p => p.DateTime).ToList();
 
                 if (!doctorLogs.Any())
                 {
@@ -235,7 +245,7 @@ namespace HospitalManagementSystem.Controllers
                 return Ok(new
                 {
                     message = "Patient logs retrieved successfully!",
-                    doctorName = doctorName,
+                    doctorName = parsedDoctorId,
 
                     logs = doctorLogs.Select(p => new
                     {
@@ -267,25 +277,29 @@ namespace HospitalManagementSystem.Controllers
         }
 
         [HttpDelete("PatientLog")] // Keeps your standard resource name
-        public IActionResult DeletePatientLog([FromQuery] Guid patientID)
+        public IActionResult DeletePatientLog([FromQuery] Guid patientID, string doctorID)
         {
             try
             {
-                var patient = dbContext.patients.FirstOrDefault(p => p.PatientID == patientID && p.IsActive == true);
+
+                if (!Guid.TryParse(doctorID, out Guid parsedDoctorId))
+                {
+                    return BadRequest(new { message = "Invalid Doctor ID format." });
+                }
+
+                var patient = dbContext.patients.FirstOrDefault(p => p.DoctorID == parsedDoctorId && p.PatientID == patientID && p.IsActive == true);
 
                 if (patient == null)
                 {
                     return NotFound(new { message = "Patient log not found!" });
                 }
 
-                string assignedDoctor = patient.SelectDoctor;
-
                 // Perform Soft Delete
                 patient.IsActive = false;
                 dbContext.SaveChanges();
 
                 // Get remaining active logs for this doctor
-                var remainingLogs = dbContext.patients.Where(p => p.SelectDoctor == assignedDoctor && p.IsActive == true).OrderByDescending(p => p.DateTime).ToList();
+                var remainingLogs = dbContext.patients.Where(p => p.DoctorID == parsedDoctorId && p.IsActive == true).OrderByDescending(p => p.DateTime).ToList();
 
                 return Ok(new
                 {
