@@ -17,8 +17,6 @@
 
         public DateTime DateTime { get; set; }
 
-        public required string SelectDoctor { get; set; }
-
         public required string Status { get; set; }
 
         public string? DoctorID { get; set; }
